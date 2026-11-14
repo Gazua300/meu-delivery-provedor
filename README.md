@@ -71,6 +71,7 @@ O Provider utiliza a URL configurada em `VITE_BASE_URL` como base para as rotas 
 ## Aplicações relacionadas
 
 - [Meu Delivery — Aplicativo para o cliente](https://meu-delivery-eight.vercel.app/)
-- [My Delivery Provider — web app](https://my-delivery-provider.vercel.app)
+- [Meu Delivery Provedor — Painel da loja](https://meu-delivery-provedor.vercel.app/)
+- [SaaS Dashboard — Painel SaaS](https://saa-s-dashboard-eta.vercel.app/)
 - [Meu Delivery Server — Documentação da API](https://meu-delivery-server-tau.vercel.app/api-docs/)
-- [Portfolio](https://portfolio-vtu0.onrender.com)
+- [Portfolio](https://meu-porfolio-two.vercel.app/)
