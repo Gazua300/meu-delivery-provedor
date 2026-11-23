@@ -40,8 +40,11 @@ export interface Order {
   quantity: number;
   total: string;
   address: string;
-  state: 'REQUESTED' | 'FINISHED' | string;
+  state: 'REQUESTED' | 'FINISHED' | 'EXPIRED' | string;
   paymentmethod?: string;
+  payment_status?: string | null;
+  payment_approved_at?: Date | string | null;
+  archived_at?: Date | string | null;
   client: string;
 }
 

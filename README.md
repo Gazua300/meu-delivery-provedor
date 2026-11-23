@@ -16,9 +16,12 @@ O fluxo principal tem início no aplicativo para o cliente Meu Delivery. A API r
 ## Funcionalidades
 
 - Cadastro e login na loja, redefinição de senha e rotas protegidas por autenticação.
-- Visualização de pedidos agrupados por status: pendentes (`REQUESTED`) e concluídos (`FINISHED`).
-- Visualização do perfil e histórico de pedidos de cada cliente, com a possibilidade de marcar pedidos como concluídos ou retorná-los ao status de pendentes.
-- Visualização do valor total dos pedidos listados e remoção de pedidos concluídos.
+- Visualização de pedidos pendentes, concluídos e expirados, com o status do pagamento separado do status de entrega.
+- Finalização de pedidos somente após a aprovação do pagamento; pedidos pagos permanecem aguardando a entrega.
+- Visualização do perfil e histórico de pedidos dos clientes atendidos pelo estabelecimento.
+- Arquivamento de pedidos concluídos ou expirados e busca no histórico arquivado por cliente, produto, status ou data.
+- Na lista de arquivados, exibição do status do pagamento; a tela do cliente continua mostrando o estado do pedido, como `Expirado`.
+- Alerta visual para pedidos pagos há mais de um minuto e ainda não concluídos.
 - Gerenciamento do catálogo de produtos: criação, edição e remoção de produtos, incluindo categoria, descrição, preço, estoque e imagem.
 - Busca de produtos dentro de uma categoria selecionada.
 - Edição de detalhes da loja, visualização de notificações e gerenciamento da conta.
@@ -66,7 +69,7 @@ npm run lint
 
 ## Integração de API
 
-O Provider utiliza a URL configurada em `VITE_BASE_URL` como base para as rotas `/providers`, `/orders`, `/users` e `/provider-notifications` no Meu Delivery Server. Ações autenticadas enviam o token da loja no cabeçalho `Authorization`.
+O Provider utiliza a URL configurada em `VITE_BASE_URL` como base para as rotas `/providers`, `/orders`, `/users` e `/provider-notifications` no Meu Delivery Server. Ações autenticadas enviam o token da loja no cabeçalho `Authorization`. O status do pagamento não substitui o estado de entrega: somente pedidos com pagamento aprovado podem ser finalizados pelo estabelecimento.
 
 ## Aplicações relacionadas
 

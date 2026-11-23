@@ -8,10 +8,24 @@ import type { Order, User } from '../../types/types'
 import { useGlobal } from '../../hooks/useGlobal'
 import { ProviderRoutes } from '../../routes/paths'
 import { formatPhoneNumber } from '../../utils/inputsAndKeys'
+import { usePaidOrderAlerts } from '../../hooks/usePaidOrderAlerts'
 
 
 
 const BASE_URL = import.meta.env.VITE_BASE_URL
+
+
+const getClientOrderStatusLabel = (order:Order):string=>{
+    if(order.state === 'REQUESTED'){
+        return order.payment_status === 'APPROVED'
+            ? 'Pago — aguardando entrega'
+            : 'Aguardando pagamento'
+    }
+
+    if(order.state === 'FINISHED') return 'Concluído'
+    if(order.state === 'EXPIRED') return 'Expirado'
+    return order.state
+}
 
 
 const ClientData:FC = ()=>{
@@ -20,6 +34,7 @@ const ClientData:FC = ()=>{
     const userId = localStorage.getItem('userId')
     const [user, setUser] = useState<User | null>(null)
     const [orders, setOrders] = useState<Order[]>([])
+    const blinkingOrderIds = usePaidOrderAlerts(orders)
     const [isUiLoading, setIsUiLoading] = useState<boolean>(true)
     const [isMutating, setIsMutating] = useState<boolean>(false)
 
@@ -32,9 +47,9 @@ const ClientData:FC = ()=>{
 
     const fetchClientWorkspace = useCallback(async()=>{
         if(!userId){
-            console.error("Missing valid target client identification identity.")
+            console.error("Identificação válida do cliente não encontrada.")
             navigate(ProviderRoutes.ORDERS)
-            return
+            return null
         }
 
         try{
@@ -43,19 +58,39 @@ const ClientData:FC = ()=>{
                 axios.get<Order[]>(`${BASE_URL}/orders/user/${userId}`, requestConfig)
             ]);
 
-            setUser(profileRes.data)
-            setOrders(historyRes.data)
-        }catch(e:any){
-            console.error(e?.response?.data?.message || e?.response?.data || e)
-        }finally{
-            setIsUiLoading(false)
+            return { user: profileRes.data, orders: historyRes.data }
+        }catch(error:unknown){
+            console.error('Não foi possível carregar os dados do cliente:', error)
+            return null
         }
     }, [userId, requestConfig, navigate])
 
 
 
     useEffect(() => {
-        fetchClientWorkspace()
+        let cancelled = false
+        const loadClientWorkspace = () => {
+            void fetchClientWorkspace().then(workspace => {
+                if(cancelled) return
+                if(workspace){
+                    setUser(workspace.user)
+                    setOrders(workspace.orders)
+                }
+                setIsUiLoading(false)
+            })
+        }
+
+        loadClientWorkspace()
+
+        const refreshInterval = window.setInterval(
+            loadClientWorkspace,
+            10_000
+        )
+
+        return () => {
+            cancelled = true
+            window.clearInterval(refreshInterval)
+        }
     }, [fetchClientWorkspace])
 
 
@@ -72,8 +107,8 @@ const ClientData:FC = ()=>{
 
             const refreshOrders = await axios.get<Order[]>(`${BASE_URL}/orders/user/${userId}`, requestConfig)
             setOrders(refreshOrders.data)
-        }catch(e:any){
-            console.error(e?.response?.data?.message || e?.response?.data || e)
+        }catch(error:unknown){
+            console.error('Não foi possível atualizar o status do pedido:', error)
         }finally{
             setIsMutating(false)
         }
@@ -107,7 +142,7 @@ const ClientData:FC = ()=>{
 
 
     if (isUiLoading) {
-        return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Retrieving the customer's registration details...</div>;
+        return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Carregando os dados do cliente...</div>;
     }
 
 
@@ -172,7 +207,7 @@ const ClientData:FC = ()=>{
 
                 <div className="card-container">
                 {orders.map(order => (
-                    <div className="card" key={order.id}>
+                    <div className={`card${blinkingOrderIds.has(order.id) ? ' card--paid-overdue' : ''}`} key={order.id}>
                         <div className="card-content">
                             <div className="rest-name">
                             {order.product} — R$ {Number(order.price).toFixed(2)}
@@ -180,17 +215,22 @@ const ClientData:FC = ()=>{
                             <b>Pedido feito em:</b> {new Date(order.moment).toLocaleString()} <br/>
                             <b>Quantidade:</b> {order.quantity}<br/>
                             <b>Total:</b> R$ {Number(order.total).toFixed(2)}<br/>
-                            <b>Status:</b> {order.state === 'FINISHED' ? 'Concluído' : 'Pendente'} <br />
+                                <b>Status:</b> {getClientOrderStatusLabel(order)} <br />
 
                             <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                             {order.state === 'REQUESTED' ? (
                                 <button 
-                                disabled={isMutating}
+                                    disabled={isMutating || order.payment_status !== 'APPROVED'}
                                 onClick={() => handleUpdateOrderStatus(order.id, 'finish')}
                                 >
-                                {isMutating ? 'Atualizando...' : 'Finalilzar pedido'}
+                                    {isMutating
+                                        ? 'Atualizando...'
+                                        : order.payment_status === 'APPROVED'
+                                        ? 'Finalizar pedido'
+                                        : 'Aguardando pagamento'
+                                    }
                                 </button>
-                            ) : (
+                                ) : order.state === 'FINISHED' ? (
                                 <button 
                                 disabled={isMutating}
                                 onClick={() => handleUpdateOrderStatus(order.id, 'return')}
@@ -198,7 +238,7 @@ const ClientData:FC = ()=>{
                                 >
                                 {isMutating ? 'Atualizando...' : 'Voltar para pendente'}
                                 </button>
-                            )}
+                                ) : null}
                             </div>
                         </div>
                     </div>
