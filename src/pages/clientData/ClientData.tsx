@@ -53,12 +53,45 @@ const ClientData:FC = ()=>{
         }
 
         try{
-            const [profileRes, historyRes] = await Promise.all([
+            const [profileResult, historyResult] = await Promise.allSettled([
                 axios.get<User>(`${BASE_URL}/users/profile/${userId}`, requestConfig),
                 axios.get<Order[]>(`${BASE_URL}/orders/user/${userId}`, requestConfig)
             ]);
 
-            return { user: profileRes.data, orders: historyRes.data }
+            if(profileResult.status === 'fulfilled'){
+                setUser(profileResult.value.data)
+            }
+
+            if(historyResult.status === 'fulfilled'){
+                setOrders(historyResult.value.data)
+            }
+
+            if (profileResult.status === 'rejected') {
+                console.error(
+                    'Não foi possível carregar o perfil do cliente:',
+                    profileResult.reason
+                )
+            }
+
+            if (historyResult.status === 'rejected') {
+                console.error(
+                    'Não foi possível carregar os pedidos do cliente:',
+                    historyResult.reason
+                )
+            }
+
+            if (profileResult.status === 'rejected' && historyResult.status === 'rejected') {
+                return null
+            }
+
+            return {
+                user: profileResult.status === 'fulfilled'
+                    ? profileResult.value.data
+                    : null,
+                orders: historyResult.status === 'fulfilled'
+                    ? historyResult.value.data
+                    : []
+            }
         }catch(error:unknown){
             console.error('Não foi possível carregar os dados do cliente:', error)
             return null
