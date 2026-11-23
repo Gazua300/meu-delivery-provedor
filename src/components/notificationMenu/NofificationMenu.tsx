@@ -39,18 +39,28 @@ export default function NotificationMenu(){
 
 
     useEffect(()=>{
+        let active = true
+
         async function loadNotifications(){
             setNotifications([])
 
             try{
                 const data = await notifificationService.getNofifications()
-                setNotifications(data)
+                if(active) setNotifications(data)
             }catch(e:any){
-                console.error(e?.response?.data?.message || e?.response?.data || e?.message)
+                if(active){
+                    console.error(e?.response?.data?.message || e?.response?.data || e?.message)
+                }
             }
         }
-        loadNotifications
-    }, [])
+        void loadNotifications()
+        const intervalId = window.setInterval(() => void loadNotifications(), 30_000)
+
+        return ()=>{
+            active = false
+            window.clearInterval(intervalId)
+        }
+    }, [setNotifications])
 
 
 
