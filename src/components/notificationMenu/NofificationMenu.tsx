@@ -38,29 +38,20 @@ export default function NotificationMenu(){
 
 
 
-    useEffect(()=>{
-        let active = true
-
-        async function loadNotifications(){
-            setNotifications([])
-
-            try{
-                const data = await notifificationService.getNofifications()
-                if(active) setNotifications(data)
-            }catch(e:any){
-                if(active){
-                    console.error(e?.response?.data?.message || e?.response?.data || e?.message)
-                }
+    useEffect(
+        () => notifificationService.startNotificationStream(
+            (notification) =>{
+                setNotifications(current =>
+                    current.some(item => item.id === notification.id)
+                        ? current
+                        : [notification, ...current]
+                )
+            },
+            setNotifications,
+            (error: unknown) =>{
+                console.error('Falha ao receber notificações do fornecedor:', error)
             }
-        }
-        void loadNotifications()
-        const intervalId = window.setInterval(() => void loadNotifications(), 30_000)
-
-        return ()=>{
-            active = false
-            window.clearInterval(intervalId)
-        }
-    }, [setNotifications])
+    ), [setNotifications])
 
 
 
@@ -137,7 +128,10 @@ export default function NotificationMenu(){
         <Container>
             <div className="position-container" ref={menuRef}>
                 <BtnStyle
-                    onClick={() => setOpen((prev) => !prev)}>
+                    onClick={() =>{
+                        void notifificationService.enableNotificationSound()
+                        setOpen((prev) => !prev)
+                    }}>
                     {unreadCount > 0 ? (
                         <>
                             <FaBell className="header-icon"/>
